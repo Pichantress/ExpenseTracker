@@ -55,6 +55,8 @@ const HomeScreen = () => {
   };
 
   return (
+    <>
+    <title>HomePage</title>
     <div
       className="p-4 max-w-4xl mx-auto transition-colors"
       style={{ color: "var(--custom-12)" }}
@@ -210,6 +212,7 @@ const HomeScreen = () => {
         ))
       )}
     </div>
+    </>
   );
 };
 
