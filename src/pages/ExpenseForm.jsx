@@ -16,7 +16,7 @@ const ExpenseFormPage = () => {
 
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState([
-    { label: "Makanan", icon: "Utensils" },
+    { label: "Makan", icon: "Utensils" },
     { label: "Transportasi", icon: "Car" },
     { label: "Belanja", icon: "ShoppingCart" },
   ]);
@@ -29,7 +29,31 @@ const ExpenseFormPage = () => {
   const [categoryToDelete, setCategoryToDelete] = useState(null);
 
   const allCategories = [...categories, ...customCategories];
-
+  
+  const categoryIcons = [
+    "Hamburger",
+    "Shopping-cart",
+    "Car",
+    "House",
+    "Gift",
+    "Smartphone",
+    "Shirt",
+    "Gamepad2",
+    "SprayCan",
+    "Hospital",
+    "Coins",
+    "Book",
+    "Baby",
+    "PawPrint",
+    "PlaneTakeoff",
+    "Laptop",
+    "Camera",
+    "Coffee",
+    "Bike",
+    "BedSingle",
+    "Briefcase",
+    "Heart",
+  ];
   useEffect(() => {
     const storedBalance = localStorage.getItem("balance_saldo");
     if (storedBalance) setBalance(Number(storedBalance));
@@ -116,6 +140,10 @@ const ExpenseFormPage = () => {
     if (exists) {
       alert("Kategori sudah ada");
       return;
+    }
+    if (!lucideIcons[newIcon]){
+      alert ("Icon tidak valid")
+      return
     }
     const updated = [
       ...customCategories,
@@ -339,18 +367,18 @@ const ExpenseFormPage = () => {
                           marginBottom: "1rem",
                         }}
                       >
-                        {Object.keys(lucideIcons).map((icon) => {
-                          const Icon = lucideIcons[icon];
+                        {categoryIcons.map((iconName) => {
+                          const Icon = lucideIcons[iconName] || lucideIcons.Tag;
                           return (
                             <button
-                              key={icon}
+                              key={iconName}
                               type="button"
-                              onClick={() => setNewIcon(icon)}
+                              onClick={() => setNewIcon(iconName)}
                               style={{
                                 padding: "0.5rem",
                                 borderRadius: "0.375rem",
                                 border:
-                                  newIcon === icon
+                                  newIcon === iconName
                                     ? "2px solid #2563eb"
                                     : "1px solid var(--gray-5)",
                                 backgroundColor: "var(--custom-3)",

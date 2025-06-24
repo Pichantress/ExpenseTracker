@@ -15,18 +15,30 @@ const formatRupiah = (number) =>
     minimumFractionDigits: 0,
   }).format(number);
 
-
 const HomeScreen = () => {
   const { expenses, deleteExpense } = useExpenses();
-  const grouped = groupExpensesByDate(expenses);
   const navigate = useNavigate();
   const { isDark, setIsDark } = useTheme();
-  const [balance, setBalance] = useState(0)
+  const [balance, setBalance] = useState(0);
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedYear, setSelectedYear] = useState("");
+  const now = new Date();
+  const defaultMonth = now.getMonth() + 1;
+  const defaultYear = now.getFullYear();
 
-  useEffect(()=>{
-    const data = localStorage.getItem("balance_saldo")
-    setBalance(JSON.parse(data))
-  }, [])
+  useEffect(() => {
+    const data = localStorage.getItem("balance_saldo");
+    setBalance(JSON.parse(data));
+  }, []);
+
+  useEffect(() => {
+    const now = new Date();
+    if (selectedMonth && !selectedYear) {
+      setSelectedYear(String(now.getFullYear()));
+    } else if (selectedYear && !selectedMonth) {
+      setSelectedMonth(String(now.getMonth() + 1));
+    }
+  }, [selectedMonth, selectedYear]);
 
   const total = expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
 
@@ -37,14 +49,14 @@ const HomeScreen = () => {
   };
 
   const handleDelete = (id) => {
-    const exp = expenses.find((e)=>e.id === id)
+    const exp = expenses.find((e) => e.id === id);
     toast(`Yakin mau dihapus ni?`, {
       action: {
         label: "Hapus",
         onClick: async () => {
           try {
             deleteExpense(id);
-            updateBalanceAfterDelete(exp.amount)
+            updateBalanceAfterDelete(exp.amount);
             toast.success("Pengeluaran berhasil dihapus");
           } catch {
             toast.error("Gagal menghapus pengeluaran");
@@ -54,164 +66,241 @@ const HomeScreen = () => {
     });
   };
 
+  const filteredExpenses = expenses.filter((e) => {
+    const date = new Date(e.date);
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+
+    const monthToCheck = selectedMonth ? parseInt(selectedMonth) : defaultMonth;
+    const yearToCheck = selectedYear ? parseInt(selectedYear) : defaultYear;
+
+    return month === monthToCheck && year === yearToCheck;
+  });
+
+  const grouped = groupExpensesByDate(filteredExpenses);
+
+  const allYears = [
+    ...new Set(expenses.map((e) => new Date(e.date).getFullYear())),
+  ];
+
   return (
     <>
-    <title>HomePage</title>
-    <div
-      className="p-4 max-w-4xl mx-auto transition-colors"
-      style={{ color: "var(--custom-12)" }}
-    >
-      {/* Toggle Theme */}
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={() => setIsDark((prev) => !prev)}
-          className="p-2 rounded-full transition"
-          style={{
-            backgroundColor: "var(--custom-3)",
-            color: "var(--custom-12)",
-          }}
-        >
-          {isDark ? <Sun /> : <Moon />}
-        </button>
-      </div>
-
-      {/* Heading */}
-      <h1 className="flex items-center gap-2 text-2xl font-bold mb-4 text-center">
-        <ShoppingBag /> Pengeluaran Saya
-      </h1>
-
-      {/* Summary Cards */}
-      <div className="mb-6 grid sm:grid-cols-2 gap-4">
-        <div
-          className="p-4 rounded-xl shadow transition"
-          style={{
-            backgroundColor: "var(--custom-5)",
-            color: "var(--custom-12)",
-          }}
-        >
-          <h2 className="text-sm">Total Pengeluaran</h2>
-          <p className="text-xl font-semibold text-red-500">
-            {formatRupiah(total)}
-          </p>
+      <title>HomePage</title>
+      <div
+        className="p-4 max-w-4xl mx-auto transition-colors"
+        style={{ color: "var(--custom-12)" }}
+      >
+        {/* Toggle Theme */}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => setIsDark((prev) => !prev)}
+            className="p-2 rounded-full transition"
+            style={{
+              backgroundColor: "var(--custom-3)",
+              color: "var(--custom-12)",
+            }}
+          >
+            {isDark ? <Sun /> : <Moon />}
+          </button>
         </div>
-        <div
-          className="p-4 rounded-xl shadow transition"
-          style={{
-            backgroundColor: "var(--custom-5)",
-            color: "var(--custom-12)",
-          }}
-        >
-          <h2 className="text-sm text-[--gray-10]">Saldo Saat Ini</h2>
-          <p className="text-xl font-semibold text-green-500">
-            {formatRupiah(balance)}
-          </p>
-        </div>
-      </div>
 
-      {/* Action Buttons */}
-      <div className="flex justify-end gap-2 mb-6">
-        <button
-          onClick={() => navigate("/form")}
-          className="flex items-center gap-2 px-4 py-2 rounded transition hover:brightness-110"
-          style={{
-            backgroundColor: "var(--custom-6)",
-            color: "var(--custom-12)",
-          }}
-        >
-          <PlusIcon /> Tambah
-        </button>
-        <button
-          onClick={() => navigate("/balance")}
-          className="px-4 py-2 rounded shadow transition"
-          style={{
-            backgroundColor: "var(--custom-6)",
-            color: "var(--custom-12)",
-          }}
-        >
-          Saldo
-        </button>
-      </div>
+        {/* Heading */}
+        <h1 className="flex items-center gap-2 text-2xl font-bold mb-4 text-center">
+          <ShoppingBag /> Pengeluaran Saya
+        </h1>
 
-      {Object.entries(grouped).length === 0 ? (
-        <p className="text-center">Belum ada pengeluaran.</p>
-      ) : (
-        Object.entries(grouped).map(([date, items]) => (
-          <div key={date} className="mb-6">
-            <h2 className="text-xl font-semibold mb-2 text-[--gray-10]">{date}</h2>
-            <div className="space-y-3">
-              {items.map((exp) => {
-                const IconComponent = LucideIcons[exp.icon] || ShoppingBag;
-
-                return (
-                  <div
-                    key={exp.id}
-                    className="flex justify-between items-center p-4 rounded-xl shadow hover:shadow-md transition"
-                    style={{ backgroundColor: "var(--custom-2)", color: "var(--custom-12)" }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1 text-[--gray-10]">
-                        <IconComponent size={24} />
-                      </div>
-                      <div>
-                        <p className="font-medium">{exp.title}</p>
-                        <p className="text-sm text-[--gray-10]">{exp.category}</p>
-                        {exp.note && (
-                          <p className="text-sm italic text-[--gray-9]">"{exp.note}"</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-blue-500">
-                        {formatRupiah(exp.amount)}
-                      </p>
-                      <div className="flex justify-end mt-2 gap-2">
-                        <Tooltip.Root>
-                          <Tooltip.Trigger asChild>
-                            <button
-                              onClick={() => navigate(`/edit/${exp.id}`)}
-                              className="text-blue-500 hover:text-blue-700 transition"
-                            >
-                              <Pencil size={18} />
-                            </button>
-                          </Tooltip.Trigger>
-                          <Tooltip.Portal>
-                            <Tooltip.Content
-                              side="top"
-                              className="bg-black text-white text-xs px-2 py-1 rounded"
-                            >
-                              Edit
-                            </Tooltip.Content>
-                          </Tooltip.Portal>
-                        </Tooltip.Root>
-
-                        <Tooltip.Root>
-                          <Tooltip.Trigger asChild>
-                            <button
-                              onClick={() => handleDelete(exp.id)}
-                              className="text-red-500 hover:text-red-700 transition"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </Tooltip.Trigger>
-                          <Tooltip.Portal>
-                            <Tooltip.Content
-                              side="top"
-                              className="bg-black text-white text-xs px-2 py-1 rounded"
-                            >
-                              Hapus
-                            </Tooltip.Content>
-                          </Tooltip.Portal>
-                        </Tooltip.Root>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+        {/* Summary Cards */}
+        <div className="mb-6 grid sm:grid-cols-2 gap-4">
+          <div
+            className="p-4 rounded-xl shadow transition"
+            style={{
+              backgroundColor: "var(--custom-5)",
+              color: "var(--custom-12)",
+            }}
+          >
+            <h2 className="text-sm">Total Pengeluaran</h2>
+            <p className="text-xl font-semibold text-red-500">
+              {formatRupiah(total)}
+            </p>
           </div>
-        ))
-      )}
-    </div>
+          <div
+            className="p-4 rounded-xl shadow transition"
+            style={{
+              backgroundColor: "var(--custom-5)",
+              color: "var(--custom-12)",
+            }}
+          >
+            <h2 className="text-sm text-[--gray-10]">Saldo Saat Ini</h2>
+            <p className="text-xl font-semibold text-green-500">
+              {formatRupiah(balance)}
+            </p>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-2 mb-6">
+          <button
+            onClick={() => navigate("/form")}
+            className="flex items-center gap-2 px-4 py-2 rounded transition hover:brightness-110"
+            style={{
+              backgroundColor: "var(--custom-6)",
+              color: "var(--custom-12)",
+            }}
+          >
+            <PlusIcon /> Tambah
+          </button>
+          <button
+            onClick={() => navigate("/balance")}
+            className="px-4 py-2 rounded shadow transition"
+            style={{
+              backgroundColor: "var(--custom-6)",
+              color: "var(--custom-12)",
+            }}
+          >
+            Saldo
+          </button>
+        </div>
+        <div className="flex gap-4 items-center mb-6">
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="p-2 rounded"
+            style={{
+              backgroundColor: "var(--custom-2)",
+              color: "var(--custom-12)",
+            }}
+          >
+            <option value="">Bulan</option>
+            {Array.from({ length: 12 }, (_, i) => (
+              <option key={i + 1} value={i + 1}>
+                {new Date(0, i).toLocaleDateString("id-ID", { month: "long" })}
+              </option>
+            ))}
+          </select>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="p-2 rounded"
+            style={{
+              backgroundColor: "var(--custom-2)",
+              color: "var(--custom-12)",
+            }}
+          >
+            <option value="">Tahun</option>
+            {allYears.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+          {(selectedMonth || selectedYear) && (
+            <button
+              onClick={() => {
+                setSelectedMonth("");
+                setSelectedYear("");
+              }}
+              className="px-4 py-2 rounded shadow transition"
+              style={{
+                backgroundColor: "var(--custom-6)",
+                color: "var(--custom-12)",
+              }}
+            >
+              Reset Filter
+            </button>
+          )}
+        </div>
+
+        {Object.entries(grouped).length === 0 ? (
+          <p className="text-center">Belum ada pengeluaran.</p>
+        ) : (
+          Object.entries(grouped)
+            .sort((a, b) => new Date(b[0]) - new Date(a[0]))
+            .map(([date, items]) => (
+              <div key={date} className="mb-6">
+                <h2 className="text-xl font-semibold mb-2 text-[--gray-10]">
+                  {date}
+                </h2>
+                <div className="space-y-3">
+                  {items.map((exp) => {
+                    const IconComponent = LucideIcons[exp.icon] || ShoppingBag;
+
+                    return (
+                      <div
+                        key={exp.id}
+                        className="flex justify-between items-center p-4 rounded-xl shadow hover:shadow-md transition"
+                        style={{
+                          backgroundColor: "var(--custom-2)",
+                          color: "var(--custom-12)",
+                        }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="mt-1 text-[--gray-10]">
+                            <IconComponent size={24} />
+                          </div>
+                          <div>
+                            <p className="font-medium">{exp.title}</p>
+                            <p className="text-sm text-[--gray-10]">
+                              {exp.category}
+                            </p>
+                            {exp.note && (
+                              <p className="text-sm italic text-[--gray-9]">
+                                "{exp.note}"
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-blue-500">
+                            {formatRupiah(exp.amount)}
+                          </p>
+                          <div className="flex justify-end mt-2 gap-2">
+                            <Tooltip.Root>
+                              <Tooltip.Trigger asChild>
+                                <button
+                                  onClick={() => navigate(`/edit/${exp.id}`)}
+                                  className="text-blue-500 hover:text-blue-700 transition"
+                                >
+                                  <Pencil size={18} />
+                                </button>
+                              </Tooltip.Trigger>
+                              <Tooltip.Portal>
+                                <Tooltip.Content
+                                  side="top"
+                                  className="bg-black text-white text-xs px-2 py-1 rounded"
+                                >
+                                  Edit
+                                </Tooltip.Content>
+                              </Tooltip.Portal>
+                            </Tooltip.Root>
+
+                            <Tooltip.Root>
+                              <Tooltip.Trigger asChild>
+                                <button
+                                  onClick={() => handleDelete(exp.id)}
+                                  className="text-red-500 hover:text-red-700 transition"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </Tooltip.Trigger>
+                              <Tooltip.Portal>
+                                <Tooltip.Content
+                                  side="top"
+                                  className="bg-black text-white text-xs px-2 py-1 rounded"
+                                >
+                                  Hapus
+                                </Tooltip.Content>
+                              </Tooltip.Portal>
+                            </Tooltip.Root>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+        )}
+      </div>
     </>
   );
 };
