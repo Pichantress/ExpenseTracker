@@ -32,7 +32,7 @@ const ExpenseFormPage = () => {
   
   const categoryIcons = [
     "Hamburger",
-    "Shopping-cart",
+    "ShoppingCart",
     "Car",
     "House",
     "Gift",
